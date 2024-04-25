@@ -1,0 +1,41 @@
+name: Check semver
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - prdoc/*.prdoc
+
+jobs:
+  check-publish:
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/paritytech/ci-unified:bullseye-1.77.0-2024-04-10-v20240408
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 250
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
+        with:
+          cache-on-failure: true
+
+      - name: Rust compilation prerequisites
+        run: |
+          rustup default nightly-2024-03-01
+          rustup target add wasm32-unknown-unknown --toolchain nightly-2024-03-01
+          rustup component add rust-src --toolchain nightly-2024-03-01
+
+      - name: install parity-publish
+        run: cargo install parity-publish@0.5.1
+
+      - name: check semver
+        run: |
+          git config --global --add safe.directory '*'
+          parity-publish --color always prdoc --since ${HEAD}~${COMMITS} --validate prdoc/pr_$PR.prdoc --toolchain nightly-2024-03-01
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          COMMITS: ${{ github.event.pull_request.commits }}
