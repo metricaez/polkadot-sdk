@@ -34,6 +34,7 @@ jobs:
       - name: check semver
         run: |
           git config --global --add safe.directory '*'
+          export CARGO_TARGET_DIR=target
           parity-publish --color always prdoc --since ${HEAD}~${COMMITS} --validate prdoc/pr_$PR.prdoc --toolchain nightly-2024-03-01 -v
         env:
           PR: ${{ github.event.pull_request.number }}
